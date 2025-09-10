@@ -21,9 +21,9 @@ import { CreateProductDto } from '../../shared/dto/create-product.dto';
 import { BulkOperationsDto } from '../../shared/dto/bulk-operations.dto';
 import { ScrapeProductDto } from '../../shared/dto/scrape-product.dto';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { Public } from '../../shared/decorators/public.decorator';
 
 @Controller('products')
-@UseGuards(JwtAuthGuard)
 export class ProductsController {
 	constructor(
 		private productsService: ProductsService,
@@ -31,6 +31,7 @@ export class ProductsController {
 	) {}
 
 	@Get()
+	@UseGuards(JwtAuthGuard)
 	async getProducts(
 		@Request() req,
 		@Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -48,6 +49,7 @@ export class ProductsController {
 		});
 	}
 
+	@Public()
 	@Get('popular')
 	async getPopularProducts(
 		@Query('platform', new DefaultValuePipe('coupang')) platform: string,
@@ -55,6 +57,7 @@ export class ProductsController {
 	) {
 		return this.productsService.getPopularProducts(platform, limit);
 	}
+
 
 	@Get(':id')
 	async getProduct(@Param('id') id: string, @Request() req) {

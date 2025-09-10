@@ -24,4 +24,5 @@ export class AppController {
       memory: process.memoryUsage(),
     };
   }
+
 }

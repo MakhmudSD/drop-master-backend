@@ -6,15 +6,12 @@ import { RealScraperService } from '../scraping/real-scraper.service';
 import { Product, ProductDocument } from '../../shared/schemas/product.schema';
 import { CreateProductDto } from '../../shared/dto/create-product.dto';
 import { BulkOperationsDto } from '../../shared/dto/bulk-operations.dto';
-import { HttpService } from '@nestjs/axios';
-
 @Injectable()
 export class ProductsService {
 	constructor(
 		@InjectModel(Product.name) private productModel: Model<ProductDocument>,
 		private aiTranslationService: AiTranslationService,
 		private realScraperService: RealScraperService,
-		private httpService: HttpService,
 	) {}
 
 	async getProducts(

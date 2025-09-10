@@ -35,6 +35,6 @@ import { Product, ProductSchema } from '../../shared/schemas/product.schema';
     RobustScraperService,
     AiTranslationService,
   ],
-  exports: [ScrapingService, ScraperApiService, AiTranslationService, RealScraperService],
+  exports: [ScrapingService, ScraperApiService, AiTranslationService, RealScraperService, EnhancedScraperService],
 })
 export class ScrapingModule {}

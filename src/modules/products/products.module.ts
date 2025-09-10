@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
@@ -10,11 +10,12 @@ import { HttpModule } from '@nestjs/axios';
 
 @Module({
 	imports: [
-		MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]), 
-		HttpModule.register({
-			timeout: 5000,
-			maxRedirects: 5,
-		})
+		   MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]), 
+		   HttpModule.register({
+			   timeout: 5000,
+			   maxRedirects: 5,
+		   }),
+		   forwardRef(() => ScrapingModule),
 	],
 	controllers: [ProductsController],
 	providers: [

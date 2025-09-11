@@ -9,17 +9,22 @@ import { KakaoStrategy } from '../../shared/strategies/kakao.strategy';
 import { NaverStrategy } from '../../shared/strategies/naver.strategy';
 import { JwtStrategy } from '../../shared/strategies/jwt.strategy';
 import { User, UserSchema } from '../../shared/schemas/user.schema';
+import { OAuthController } from './oauth.controller';
 
 @Module({
   imports: [
     PassportModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '7d' },
-    }),
+  JwtModule.registerAsync({
+  useFactory: () => ({
+    secret: process.env.JWT_SECRET,
+    signOptions: { expiresIn: '7d' },
+  }),
+}),
+    
   ],
-  controllers: [AuthController],
+  
+  controllers: [AuthController, OAuthController],
   providers: [AuthService, GoogleStrategy, KakaoStrategy, NaverStrategy, JwtStrategy],
   exports: [AuthService],
 })

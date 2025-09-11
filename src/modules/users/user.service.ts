@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable, BadRequestException, InternalServerErrorException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -49,10 +50,6 @@ export class UserService {
 
 		if (!response) {
 			throw new InternalServerErrorException('User not found');
-		}
-
-		if (!response.isActive) {
-			throw new InternalServerErrorException('Account is deactivated');
 		}
 
 		if (!response.password) {

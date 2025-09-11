@@ -52,6 +52,7 @@ import { UsersModule } from './modules/users/user.module';
     MulterModule.register({
       dest: './uploads',
     }),
+    
     // Feature modules
     AuthModule,
     UsersModule,

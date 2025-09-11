@@ -1,49 +1,67 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 
 interface CustomRequest extends Request {
-	user?: { [key: string]: any; userId: string; email: string; role: string };
+  user?: {
+    userId: string;
+    email: string;
+    role: string;
+    provider?: string;
+    googleId?: string;
+    kakaoId?: string;
+    naverId?: string;
+  };
 }
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-	constructor(private jwtService: JwtService) {}
+  private readonly logger = new Logger(JwtAuthGuard.name);
 
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const request = context.switchToHttp().getRequest<CustomRequest>();
-		const token = this.extractTokenFromHeader(request);
+  constructor(private jwtService: JwtService) {}
 
-		if (!token) {
-			throw new UnauthorizedException({
-				message: 'Access token required',
-				error: 'UNAUTHORIZED',
-				statusCode: 401,
-			});
-		}
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<CustomRequest>();
+    const token = this.extractTokenFromHeader(request);
 
-		try {
-			const payload = await this.jwtService.verifyAsync<{ [key: string]: any; userId: string; email: string; role: string }>(token);
-			if (payload === undefined || !payload.userId || !payload.email || !payload.role) {
-				throw new UnauthorizedException({
-					message: 'Invalid token payload',
-					error: 'UNAUTHORIZED',
-					statusCode: 401,
-				});
-			}
-			request.user = payload;
-			return true;
-		} catch {
-			throw new UnauthorizedException({
-				message: 'Invalid or expired token',
-				error: 'UNAUTHORIZED',
-				statusCode: 401,
-			});
-		}
-	}
+    this.logger.log(`Incoming request URL: ${request.url}`);
+    this.logger.log(`Authorization header: ${request.headers.authorization}`);
 
-	private extractTokenFromHeader(request: Request): string | undefined {
-		const [type, token] = request.headers.authorization?.split(' ') ?? [];
-		return type === 'Bearer' ? token : undefined;
-	}
+    if (!token) {
+      this.logger.warn('No token found in Authorization header');
+      throw new UnauthorizedException('Access token required');
+    }
+
+    try {
+      const payload = await this.jwtService.verifyAsync<any>(token);
+      this.logger.log(`JWT verified successfully: ${JSON.stringify(payload)}`);
+
+      // Optional: check essential payload fields
+      if (!payload?.sub || !payload?.email || !payload?.role) {
+        this.logger.warn('Token payload missing required fields');
+        throw new UnauthorizedException('Invalid token payload');
+      }
+
+      // Attach user info to request
+      request.user = {
+        userId: payload.sub,
+        email: payload.email,
+        role: payload.role,
+        provider: payload.provider,
+        googleId: payload.googleId,
+        kakaoId: payload.kakaoId,
+        naverId: payload.naverId,
+      };
+
+      return true;
+    } catch (err) {
+      this.logger.error('JWT verification failed', err);
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
+  }
 }

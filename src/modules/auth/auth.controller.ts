@@ -1,14 +1,19 @@
 import { UserDocument } from 'src/shared/schemas/user.schema';
-import { Controller, Get, Req, Res, UseGuards, Post, Body } from '@nestjs/common';
+import { Controller, Get, Req, Res, UseGuards, Post, Body, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { OAuthUserInput, UserInput, LoginInput } from '../../shared/dto/user-input.dto';
 import { Public } from '../../shared/decorators/public.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   // ---------- REGISTER ----------
   @Post('register')
@@ -60,8 +65,20 @@ export class AuthController {
     }
   }
 
+  // Test JWT verification
+  @Get('test-jwt')
+  @Public()
+	testJwt(@Query('token') token: string) {
+    try {
+      const decoded = this.jwtService.verify(token);
+      return { success: true, decoded };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   // ---------- PROFILE ----------
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Req() req: any) {
     try {

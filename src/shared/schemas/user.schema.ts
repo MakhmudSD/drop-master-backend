@@ -29,6 +29,9 @@ export class User {
   @Prop()
   naverId?: string;
 
+  @Prop()
+  accessToken?: string;
+
   @Prop({ type: Object })
   preferences?: {
     language: string;
@@ -37,9 +40,6 @@ export class User {
 
   @Prop({ default: 'user' })
   role: string;
-
-  @Prop()
-  accessToken?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

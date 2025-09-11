@@ -188,14 +188,14 @@ public async oAuthLogin(oAuthUser: OAuthUserInput): Promise<any> {
 
   // ---------- Get user by ID ----------
   public async getUser(userId: string): Promise<User> {
-    const user = await this.userModel.findOne({ _id: userId, isActive: true }).exec();
+    const user = await this.userModel.findOne({ _id: userId }).exec();
     if (!user) throw new BadRequestException('User not found');
     return user;
   }
 
   // ---------- Get user by email ----------
   public async getUserByEmail(email: string): Promise<User> {
-    const user = await this.userModel.findOne({ email, isActive: true }).exec();
+    const user = await this.userModel.findOne({ email }).exec();
     if (!user) throw new BadRequestException('User not found');
     return user;
   }

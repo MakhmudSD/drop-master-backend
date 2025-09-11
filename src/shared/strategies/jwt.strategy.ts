@@ -21,8 +21,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 		try {
 			// The payload is already verified by JWT, we just need to get the user
 			const user = await this.authService.getUserByEmail(payload.email);
-			if (!user || !(user as any).isActive) {
-				throw new UnauthorizedException('User not found or inactive');
+			if (!user) {
+				throw new UnauthorizedException('User not found');
 			}
 			return {
 				userId: (user as any)._id,

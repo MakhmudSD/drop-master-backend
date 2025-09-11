@@ -28,7 +28,6 @@ import { ScrapingRun, ScrapingRunSchema } from './shared/schemas/scraping-run.sc
 import { CartItem, CartItemSchema } from './shared/schemas/cart-item.schema';
 
 // Configuration
-import { jwtConfig } from './config/jwt.config';
 import { UsersModule } from './modules/users/user.module';
 
 @Module({
@@ -48,7 +47,6 @@ import { UsersModule } from './modules/users/user.module';
       { name: ScrapingRun.name, schema: ScrapingRunSchema },
       { name: CartItem.name, schema: CartItemSchema },
     ]),
-    JwtModule.register(jwtConfig),
     MulterModule.register({
       dest: './uploads',
     }),

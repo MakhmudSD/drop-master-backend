@@ -17,7 +17,7 @@ import { OAuthController } from './oauth.controller';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   JwtModule.registerAsync({
   useFactory: () => ({
-    secret: process.env.JWT_SECRET,
+    secret: process.env.JWT_SECRET || 'your-secret-key',
     signOptions: { expiresIn: '7d' },
   }),
 }),

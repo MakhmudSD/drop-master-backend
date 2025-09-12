@@ -67,8 +67,8 @@ private normalizeOAuthUserData(provider: 'google' | 'kakao' | 'naver', data: any
       return {
         providerId: data.id,
         email: data.kakao_account?.email || `${data.id}@kakao.com`, // fallback
-        name: data.properties?.nickname || 'No Name',
-        profileImage: data.properties?.profile_image || '',
+        name: data.kakao_account?.profile?.nickname || data.properties?.nickname || 'No Name',
+        profileImage: data.kakao_account?.profile?.profile_image_url || data.properties?.profile_image || '',
         provider: 'kakao',
       };
     case 'naver':
@@ -92,7 +92,20 @@ public async oAuthLogin(oAuthUser: OAuthUserInput): Promise<any> {
   // Try to find user by providerId first
   let user = await this.userModel.findOne({ [`${provider}Id`]: providerId }).exec();
 
-  // If not found, create new user
+  // If not found by providerId, try to find by email (for existing users who might have registered with email/password)
+  if (!user && email) {
+    user = await this.userModel.findOne({ email }).exec();
+    
+    // If found by email, link the OAuth provider to existing account
+    if (user) {
+      user[`${provider}Id`] = providerId;
+      user.provider = provider;
+      if (profileImage) user.profileImage = profileImage;
+      await user.save();
+    }
+  }
+
+  // If still not found, create new user
   if (!user) {
     user = await this.userModel.create({
       name,
@@ -104,8 +117,10 @@ public async oAuthLogin(oAuthUser: OAuthUserInput): Promise<any> {
     });
   } else {
     // Update profile image if changed
-    if (profileImage && profileImage !== user.profileImage) user.profileImage = profileImage;
-    await user.save();
+    if (profileImage && profileImage !== user.profileImage) {
+      user.profileImage = profileImage;
+      await user.save();
+    }
   }
 
   const accessToken = await this.createToken(user);

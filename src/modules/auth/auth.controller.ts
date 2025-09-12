@@ -1,7 +1,6 @@
 import { UserDocument } from 'src/shared/schemas/user.schema';
-import { Controller, Get, Req, Res, UseGuards, Post, Body, Query } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { Request, Response } from 'express';
+import { Controller, Get, Req, UseGuards, Post, Body, Query } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { OAuthUserInput, UserInput, LoginInput } from '../../shared/dto/user-input.dto';
 import { Public } from '../../shared/decorators/public.decorator';
@@ -36,6 +35,14 @@ export class AuthController {
         },
       };
     } catch (error: any) {
+      // Check if it's a duplicate email error
+      if (error.message && error.message.includes('already exists')) {
+        return { 
+          success: false, 
+          message: 'An account with this email already exists. Please try logging in instead.',
+          code: 'EMAIL_EXISTS'
+        };
+      }
       return { success: false, message: error.message || 'Registration failed' };
     }
   }
@@ -104,50 +111,6 @@ export class AuthController {
     }
   }
 
-  // ---------- GOOGLE OAUTH ----------
-  @Get('google')
-  @Public()
-  @UseGuards(AuthGuard('google'))
-  googleAuth(@Req() req: Request) {}
-
-  @Get('google/callback')
-  @Public()
-  @UseGuards(AuthGuard('google'))
-  googleAuthRedirect(@Req() req: any, @Res() res: Response) {
-    const user = req.user;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${user.accessToken}&provider=google`);
-  }
-
-  // ---------- KAKAO OAUTH ----------
-  @Get('kakao')
-  @Public()
-  @UseGuards(AuthGuard('kakao'))
-  kakaoAuth(@Req() req: Request) {}
-
-  @Get('kakao/callback')
-  @Public()
-  @UseGuards(AuthGuard('kakao'))
-  kakaoAuthRedirect(@Req() req: any, @Res() res: Response) {
-    const user = req.user;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${user.accessToken}&provider=kakao`);
-  }
-
-  // ---------- NAVER OAUTH ----------
-  @Get('naver')
-  @Public()
-  @UseGuards(AuthGuard('naver'))
-  naverAuth(@Req() req: Request) {}
-
-  @Get('naver/callback')
-  @Public()
-  @UseGuards(AuthGuard('naver'))
-  naverAuthRedirect(@Req() req: any, @Res() res: Response) {
-    const user = req.user;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${user.accessToken}&provider=naver`);
-  }
 
   // ---------- DIRECT OAUTH LOGIN ----------
   @Post('oauth-login')

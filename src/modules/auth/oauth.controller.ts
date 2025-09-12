@@ -1,8 +1,8 @@
 import { Controller, Get, Query, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import axios from 'axios';
+import * as axios from 'axios';
 import { Response } from 'express';
-@Controller('api/auth')
+@Controller('auth')
 export class OAuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -41,44 +41,51 @@ export class OAuthController {
     return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${user.accessToken}`);
   }
 
-@Get('kakao/callback')
-async kakaoCallback(@Query('code') code: string, @Res() res: Response) {
-  try {
-    interface KakaoTokenResponse {
-      access_token: string;
-      token_type: string;
-      refresh_token?: string;
-      expires_in: number;
-      scope?: string;
-    }
-
-    const tokenRes = await axios.post<KakaoTokenResponse>(
-      'https://kauth.kakao.com/oauth/token',
-      new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: process.env.KAKAO_CLIENT_ID!,
-        client_secret: process.env.KAKAO_CLIENT_SECRET || '',
-        redirect_uri: process.env.KAKAO_CALLBACK_URL!,
-        code,
-      }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
-
-    const kakaoAccessToken = tokenRes.data.access_token;
-
-    const profileRes = await axios.get('https://kapi.kakao.com/v2/user/me', {
-      headers: { Authorization: `Bearer ${kakaoAccessToken}` },
-    });
-
-    const user = await this.authService.unifiedOAuthLogin('kakao', profileRes.data);
-
-    // Redirect with token in query
-    return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${user.accessToken}`);
-  } catch (err) {
-    console.error('Kakao OAuth error:', err.response?.data || err.message);
-    return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_error`);
+  // ---------- KAKAO ----------
+  @Get('kakao')
+  kakaoLogin(@Res() res: Response) {
+    const redirectUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${process.env.KAKAO_CLIENT_ID}&redirect_uri=${process.env.KAKAO_CALLBACK_URL}`;
+    return res.redirect(redirectUrl);
   }
-}
+
+  @Get('kakao/callback')
+  async kakaoCallback(@Query('code') code: string, @Res() res: Response) {
+    try {
+      interface KakaoTokenResponse {
+        access_token: string;
+        token_type: string;
+        refresh_token?: string;
+        expires_in: number;
+        scope?: string;
+      }
+
+      const tokenRes = await axios.post<KakaoTokenResponse>(
+        'https://kauth.kakao.com/oauth/token',
+        new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: process.env.KAKAO_CLIENT_ID!,
+          client_secret: process.env.KAKAO_CLIENT_SECRET || '',
+          redirect_uri: process.env.KAKAO_CALLBACK_URL!,
+          code,
+        }),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      );
+
+      const kakaoAccessToken = tokenRes.data.access_token;
+
+      const profileRes = await axios.get('https://kapi.kakao.com/v2/user/me', {
+        headers: { Authorization: `Bearer ${kakaoAccessToken}` },
+      });
+
+      const user = await this.authService.unifiedOAuthLogin('kakao', profileRes.data);
+
+      // Redirect with token in query
+      return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${user.accessToken}`);
+    } catch (err) {
+      console.error('Kakao OAuth error:', err.response?.data || err.message);
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_error`);
+    }
+  }
 
 
 

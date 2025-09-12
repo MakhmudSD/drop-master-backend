@@ -65,10 +65,10 @@ private normalizeOAuthUserData(provider: 'google' | 'kakao' | 'naver', data: any
       };
     case 'kakao':
       return {
-        providerId: data.id,
-        email: data.kakao_account?.email || `${data.id}@kakao.com`, // fallback
-        name: data.kakao_account?.profile?.nickname || data.properties?.nickname || 'No Name',
-        profileImage: data.kakao_account?.profile?.profile_image_url || data.properties?.profile_image || '',
+        providerId: data.sub || data.id,
+        email: data.email,
+        name: data.name || `${data.given_name} ${data.family_name}`,
+        profileImage: data.picture,
         provider: 'kakao',
       };
     case 'naver':

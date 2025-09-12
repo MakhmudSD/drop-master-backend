@@ -62,10 +62,10 @@ export class OAuthController {
       const tokenRes = await axios.post<KakaoTokenResponse>(
         'https://kauth.kakao.com/oauth/token',
         new URLSearchParams({
-          grant_type: 'authorization_code',
           client_id: process.env.KAKAO_CLIENT_ID!,
           client_secret: process.env.KAKAO_CLIENT_SECRET || '',
           redirect_uri: process.env.KAKAO_CALLBACK_URL!,
+          grant_type: 'authorization_code',
           code,
         }),
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }

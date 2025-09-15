@@ -3,9 +3,12 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserDocument } from '../../shared/schemas/user.schema';
-import { OAuthUserInput, UserInput, LoginInput } from '../../shared/dto/user-input.dto';
+import { User, UserDocument } from '../../schemas/user.schema';
+import { CreateUserDto, LoginDto, OAuthUserInputDto } from '../../libs/dto';
 
+type UserInput = CreateUserDto;
+type LoginInput = LoginDto;
+type OAuthUserInput = OAuthUserInputDto;
 @Injectable()
 export class AuthService {
   constructor(

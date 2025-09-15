@@ -1,9 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Automation, AutomationDocument } from '../../shared/schemas/automation.schema';
-import { UpdateAutomationDto } from '../../shared/dto/update-automation.dto';
-
+import { Automation, AutomationDocument } from '../../schemas/automation.schema';
+import { UpdateAutomationDto } from '../../libs/dto';
 @Injectable()
 export class AutomationService {
 	constructor(@InjectModel(Automation.name) private automationModel: Model<AutomationDocument>) {}

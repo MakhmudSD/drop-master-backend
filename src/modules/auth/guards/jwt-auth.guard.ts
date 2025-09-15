@@ -1,67 +1,33 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
-
-interface CustomRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    role: string;
-    provider?: string;
-    googleId?: string;
-    kakaoId?: string;
-    naverId?: string;
-  };
-}
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
-export class JwtAuthGuard implements CanActivate {
-  private readonly logger = new Logger(JwtAuthGuard.name);
+export class JwtAuthGuard extends AuthGuard('jwt') {
+	constructor(private reflector: Reflector) {
+		super();
+	}
 
-  constructor(private jwtService: JwtService) {}
+  canActivate(context: ExecutionContext) {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<CustomRequest>();
-    const token = this.extractTokenFromHeader(request);
-
-    this.logger.log(`Incoming request URL: ${request.url}`);
-    this.logger.log(`Authorization header: ${request.headers.authorization}`);
-
-    if (!token) {
-      this.logger.warn('No token found in Authorization header');
-      throw new UnauthorizedException('Access token required');
-    }
-
-    try {
-      const payload = await this.jwtService.verifyAsync<any>(token);
-      this.logger.log(`JWT verified successfully: ${JSON.stringify(payload)}`);
-
-      // Optional: check essential payload fields
-      if (!payload?.sub || !payload?.email || !payload?.role) {
-        this.logger.warn('Token payload missing required fields');
-        throw new UnauthorizedException('Invalid token payload');
-      }
-
-      // Attach user info to request
-      request.user = {
-        userId: payload.sub,
-        email: payload.email,
-        role: payload.role,
-        provider: payload.provider,
-        googleId: payload.googleId,
-        kakaoId: payload.kakaoId,
-        naverId: payload.naverId,
-      };
-
+    if (isPublic) {
+      console.log('Public endpoint, skipping auth');
       return true;
-    } catch (err) {
-      this.logger.error('JWT verification failed', err);
-      throw new UnauthorizedException('Invalid or expired token');
     }
+
+    console.log('Protected endpoint, checking JWT');
+    return super.canActivate(context);
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
-  }
+	handleRequest<TUser = any>(err: any, user: TUser, info: any, context: ExecutionContext, status?: any): TUser {
+		if (err || !user) {
+			throw err || new UnauthorizedException('Invalid token');
+		}
+		return user;
+	}
 }

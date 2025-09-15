@@ -20,6 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@apollo/client": "^4.0.5",
+    "@nestjs/apollo": "^13.1.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -35,6 +37,7 @@
     "@types/graphql": "^14.2.3",
     "@types/node-cron": "^3.0.11",
     "apify-client": "^2.16.0",
+    "apollo-server-express": "^3.13.0",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.1.2",

@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Patch, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { AutomationService } from './automation.service';
-import { UpdateAutomationDto } from '../../shared/dto/update-automation.dto';
+import { UpdateAutomationDto } from '../../libs/dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
 @Controller('automation')
 @UseGuards(JwtAuthGuard)
 export class AutomationController {

@@ -18,14 +18,15 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { CartModule } from './modules/cart/cart.module';
 import { ScrapingModule } from './modules/scraping/scraping.module';
+import { ApolloModule } from '../apollo/apollo.module';
 
 // Schemas
-import { User, UserSchema } from './shared/schemas/user.schema';
-import { Product, ProductSchema } from './shared/schemas/product.schema';
-import { Order, OrderSchema } from './shared/schemas/order.schema';
-import { Automation, AutomationSchema } from './shared/schemas/automation.schema';
-import { ScrapingRun, ScrapingRunSchema } from './shared/schemas/scraping-run.schema';
-import { CartItem, CartItemSchema } from './shared/schemas/cart-item.schema';
+import { User, UserSchema } from './schemas/user.schema';
+import { Product, ProductSchema } from './schemas/product.schema';
+import { Order, OrderSchema } from './schemas/order.schema';
+import { Automation, AutomationSchema } from './schemas/automation.schema';
+import { ScrapingRun, ScrapingRunSchema } from './schemas/scraping-run.schema';
+import { CartItem, CartItemSchema } from './schemas/cart-item.schema';
 
 // Configuration
 import { UsersModule } from './modules/users/user.module';
@@ -59,6 +60,7 @@ import { UsersModule } from './modules/users/user.module';
     AutomationModule,
     CartModule,
     ScrapingModule,
+    ApolloModule,
   ],
   controllers: [AppController],
   providers: [AppService],

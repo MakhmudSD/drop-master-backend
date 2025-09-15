@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
-import { Automation, AutomationSchema } from '../../shared/schemas/automation.schema';
+import { Automation, AutomationSchema } from '../../schemas/automation.schema';
 
 @Module({
   imports: [

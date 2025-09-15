@@ -1,320 +1,271 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { ScrapingRun, ScrapingRunDocument } from '../../shared/schemas/scraping-run.schema';
-import { RealScraperService } from './real-scraper.service';
-import { ProductsService } from '../products/products.service';
-import { ScrapeProductsDto } from '../../shared/dto/scrape-products.dto';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import * as cheerio from 'cheerio';
+import { ScrapeProductDto, ScrapedProduct } from '../../libs/dto';
 
 @Injectable()
 export class ScrapingService {
-	constructor(
-		@InjectModel(ScrapingRun.name)
-		private scrapingRunModel: Model<ScrapingRunDocument>,
-		private realScraperService: RealScraperService,
-		@Inject(forwardRef(() => ProductsService))
-		private productsService: ProductsService,
-	) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly httpService: HttpService,
+  ) {}
 
-	async scrapeCoupang(scrapeDto: ScrapeProductsDto, userId: string) {
-		const { keywords = [], maxResults = 20 } = scrapeDto;
+  async scrapeProduct(dto: ScrapeProductDto): Promise<ScrapedProduct | null> {
+    try {
+      switch (dto.source) {
+        case 'coupang':
+          return await this.scrapeCoupangProduct(dto.url);
+        case 'naver':
+          return await this.scrapeNaverProduct(dto.url);
+        case '11st':
+          return await this.scrape11stProduct(dto.url);
+        case 'aliexpress':
+          return await this.scrapeAliExpressProduct(dto.url);
+        case 'alibaba':
+          return await this.scrapeAlibabaProduct(dto.url);
+        default:
+          throw new Error(`Unsupported platform: ${dto.source}`);
+      }
+    } catch (error) {
+      console.error(`Error scraping ${dto.source} product:`, error);
+      return null;
+    }
+  }
 
-		try {
-			const products = await this.realScraperService.scrapeCoupangProducts(keywords, maxResults);
+  async scrapeCoupangProduct(url: string): Promise<ScrapedProduct | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+        }),
+      );
 
-			const scrapingRun = new this.scrapingRunModel({
-				userId,
-				platform: 'coupang',
-				runId: `coupang_${Date.now()}`,
-				status: 'completed',
-				keywords,
-				maxResults,
-				results: products,
-				completedAt: new Date(),
-			});
+      const $ = cheerio.load(response.data);
+      
+      const title = $('.prod-buy-header__title').text().trim() || 
+                   $('h1[data-testid="product-title"]').text().trim();
+      
+      const priceText = $('.total-price strong').text().trim() || 
+                       $('[data-testid="price"]').text().trim();
+      const price = this.parsePrice(priceText);
 
-			await scrapingRun.save();
+      const imageUrl = $('.prod-image__detail img').attr('src') || 
+                      $('[data-testid="product-image"] img').attr('src') || '';
 
-			return {
-				success: true,
-				runId: scrapingRun.runId,
-				products,
-				count: products.length,
-			};
-		} catch (error) {
-			console.error('Coupang scraping error:', error);
-			return {
-				success: false,
-				error: 'Failed to scrape Coupang products',
-			};
-		}
-	}
+      return {
+        id: this.generateId(),
+        title,
+        name: title,
+        price,
+        imageUrl,
+        url,
+        platform: 'coupang',
+        category: $('.breadcrumb-item').last().text().trim(),
+        salesCount: this.parseSalesCount($('.rating-total-review').text()),
+        rating: this.parseRating($('.rating-star-num').text()),
+        reviewCount: this.parseReviewCount($('.rating-total-review').text()),
+      };
+    } catch (error) {
+      console.error('Error scraping Coupang product:', error);
+      return null;
+    }
+  }
 
-	async scrapeNaver(scrapeDto: ScrapeProductsDto, userId: string) {
-		const { keywords = [], maxResults = 20 } = scrapeDto;
+  async scrapeNaverProduct(url: string): Promise<ScrapedProduct | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+        }),
+      );
 
-		try {
-			const products = await this.realScraperService.scrapeNaverProducts(keywords, maxResults);
+      const $ = cheerio.load(response.data);
+      
+      const title = $('.product_info h3').text().trim() || 
+                   $('.product_title').text().trim();
+      
+      const priceText = $('.price .num').text().trim() || 
+                       $('.price_value').text().trim();
+      const price = this.parsePrice(priceText);
 
-			const scrapingRun = new this.scrapingRunModel({
-				userId,
-				platform: 'naver',
-				runId: `naver_${Date.now()}`,
-				status: 'completed',
-				keywords,
-				maxResults,
-				results: products,
-				completedAt: new Date(),
-			});
+      const imageUrl = $('.product_img img').attr('src') || 
+                      $('.product_image img').attr('src') || '';
 
-			await scrapingRun.save();
+      return {
+        id: this.generateId(),
+        title,
+        name: title,
+        price,
+        imageUrl,
+        url,
+        platform: 'naver',
+        category: $('.breadcrumb a').last().text().trim(),
+        salesCount: this.parseSalesCount($('.review_count').text()),
+        rating: this.parseRating($('.rating_value').text()),
+        reviewCount: this.parseReviewCount($('.review_count').text()),
+      };
+    } catch (error) {
+      console.error('Error scraping Naver product:', error);
+      return null;
+    }
+  }
 
-			return {
-				success: true,
-				runId: scrapingRun.runId,
-				products,
-				count: products.length,
-			};
-		} catch (error) {
-			console.error('Naver scraping error:', error);
-			return {
-				success: false,
-				error: 'Failed to scrape Naver products',
-			};
-		}
-	}
+  async scrape11stProduct(url: string): Promise<ScrapedProduct | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+        }),
+      );
 
-	async scrape11st(scrapeDto: ScrapeProductsDto, userId: string) {
-		const { keywords = [], maxResults = 20 } = scrapeDto;
+      const $ = cheerio.load(response.data);
+      
+      const title = $('.pdp_product_title').text().trim() || 
+                   $('.product_title').text().trim();
+      
+      const priceText = $('.price_detail .price_value').text().trim() || 
+                       $('.price .value').text().trim();
+      const price = this.parsePrice(priceText);
 
-		try {
-			const products = await this.realScraperService.scrape11stProducts(keywords, maxResults);
+      const imageUrl = $('.product_img img').attr('src') || 
+                      $('.product_image img').attr('src') || '';
 
-			const scrapingRun = new this.scrapingRunModel({
-				userId,
-				platform: '11st',
-				runId: `11st_${Date.now()}`,
-				status: 'completed',
-				keywords,
-				maxResults,
-				results: products,
-				completedAt: new Date(),
-			});
+      return {
+        id: this.generateId(),
+        title,
+        name: title,
+        price,
+        imageUrl,
+        url,
+        platform: '11st',
+        category: $('.breadcrumb a').last().text().trim(),
+        salesCount: this.parseSalesCount($('.review_count').text()),
+        rating: this.parseRating($('.rating_value').text()),
+        reviewCount: this.parseReviewCount($('.review_count').text()),
+      };
+    } catch (error) {
+      console.error('Error scraping 11st product:', error);
+      return null;
+    }
+  }
 
-			await scrapingRun.save();
+  async scrapeAliExpressProduct(url: string): Promise<ScrapedProduct | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+        }),
+      );
 
-			return {
-				success: true,
-				runId: scrapingRun.runId,
-				products,
-				count: products.length,
-			};
-		} catch (error) {
-			console.error('11st scraping error:', error);
-			return {
-				success: false,
-				error: 'Failed to scrape 11st products',
-			};
-		}
-	}
+      const $ = cheerio.load(response.data);
+      
+      const title = $('.product-title-text').text().trim() || 
+                   $('h1').first().text().trim();
+      
+      const priceText = $('.price-current .notranslate').text().trim() || 
+                       $('.price .value').text().trim();
+      const price = this.parsePrice(priceText);
 
-	async scrapeAliExpress(scrapeDto: ScrapeProductsDto, userId: string) {
-		const { keywords = [], maxResults = 20 } = scrapeDto;
+      const imageUrl = $('.images-view-item img').attr('src') || 
+                      $('.product-image img').attr('src') || '';
 
-		try {
-			const products = await this.realScraperService.scrapeAliExpressProducts(keywords, maxResults);
+      return {
+        id: this.generateId(),
+        title,
+        name: title,
+        price,
+        imageUrl,
+        url,
+        platform: 'aliexpress',
+        category: $('.breadcrumb a').last().text().trim(),
+        salesCount: this.parseSalesCount($('.sold-count').text()),
+        rating: this.parseRating($('.rating-value').text()),
+        reviewCount: this.parseReviewCount($('.review-count').text()),
+      };
+    } catch (error) {
+      console.error('Error scraping AliExpress product:', error);
+      return null;
+    }
+  }
 
-			const scrapingRun = new this.scrapingRunModel({
-				userId,
-				platform: 'aliexpress',
-				runId: `aliexpress_${Date.now()}`,
-				status: 'completed',
-				keywords,
-				maxResults,
-				results: products,
-				completedAt: new Date(),
-			});
+  async scrapeAlibabaProduct(url: string): Promise<ScrapedProduct | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+        }),
+      );
 
-			await scrapingRun.save();
+      const $ = cheerio.load(response.data);
+      
+      const title = $('.product-title').text().trim() || 
+                   $('h1').first().text().trim();
+      
+      const priceText = $('.price-current .notranslate').text().trim() || 
+                       $('.price .value').text().trim();
+      const price = this.parsePrice(priceText);
 
-			return {
-				success: true,
-				runId: scrapingRun.runId,
-				products,
-				count: products.length,
-			};
-		} catch (error) {
-			console.error('AliExpress scraping error:', error);
-			return {
-				success: false,
-				error: 'Failed to scrape AliExpress products',
-			};
-		}
-	}
+      const imageUrl = $('.product-image img').attr('src') || 
+                      $('.main-image img').attr('src') || '';
 
-	async scrapeAlibaba(scrapeDto: ScrapeProductsDto, userId: string) {
-		const { keywords = [], maxResults = 20 } = scrapeDto;
+      return {
+        id: this.generateId(),
+        title,
+        name: title,
+        price,
+        imageUrl,
+        url,
+        platform: 'alibaba',
+        category: $('.breadcrumb a').last().text().trim(),
+        salesCount: this.parseSalesCount($('.sold-count').text()),
+        rating: this.parseRating($('.rating-value').text()),
+        reviewCount: this.parseReviewCount($('.review-count').text()),
+      };
+    } catch (error) {
+      console.error('Error scraping Alibaba product:', error);
+      return null;
+    }
+  }
 
-		try {
-			const products = await this.realScraperService.scrapeAlibabaProducts(keywords, maxResults);
+  // Helper methods
+  private parsePrice(priceText: string): number {
+    if (!priceText) return 0;
+    const cleaned = priceText.replace(/[^\d.,]/g, '');
+    const price = parseFloat(cleaned.replace(',', ''));
+    return isNaN(price) ? 0 : price;
+  }
 
-			const scrapingRun = new this.scrapingRunModel({
-				userId,
-				platform: 'alibaba',
-				runId: `alibaba_${Date.now()}`,
-				status: 'completed',
-				keywords,
-				maxResults,
-				results: products,
-				completedAt: new Date(),
-			});
+  private parseSalesCount(text: string): number {
+    if (!text) return 0;
+    const match = text.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  }
 
-			await scrapingRun.save();
+  private parseRating(text: string): number {
+    if (!text) return 0;
+    const match = text.match(/(\d+\.?\d*)/);
+    return match ? parseFloat(match[1]) : 0;
+  }
 
-			return {
-				success: true,
-				runId: scrapingRun.runId,
-				products,
-				count: products.length,
-			};
-		} catch (error) {
-			console.error('Alibaba scraping error:', error);
-			return {
-				success: false,
-				error: 'Failed to scrape Alibaba products',
-			};
-		}
-	}
+  private parseReviewCount(text: string): number {
+    if (!text) return 0;
+    const match = text.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  }
 
-	async getScrapingStatus(runId: string) {
-		const run = await this.scrapingRunModel.findOne({ runId });
-		if (!run) {
-			return {
-				success: false,
-				error: 'Scraping run not found',
-			};
-		}
-
-		return {
-			success: true,
-			status: run.status,
-			runId: run.runId,
-			platform: run.platform,
-			completedAt: run.completedAt,
-		};
-	}
-
-	async getScrapingResults(runId: string) {
-		const run = await this.scrapingRunModel.findOne({ runId });
-		if (!run) {
-			return {
-				success: false,
-				error: 'Scraping run not found',
-			};
-		}
-
-		return {
-			success: true,
-			results: run.results,
-			count: run.results?.length || 0,
-		};
-	}
-
-	async processScrapingResults(runId: string, processData: { platform: string }, userId: string) {
-		const run = await this.scrapingRunModel.findOne({ runId, userId });
-		if (!run) {
-			return {
-				success: false,
-				error: 'Scraping run not found',
-			};
-		}
-
-		// Process and save products from scraping results
-		const processedProducts: Array<{
-			title: string;
-			description: string;
-			priceKRW: number;
-			sourcePrice: number;
-			marginRate: number;
-			category: string;
-			targetPlatform: string;
-			sourcePlatform: string;
-			sourceUrl: string;
-			imageUrls: string[];
-			salesCount: number;
-			growthRate: number;
-			competitionLevel: string;
-		}> = [];
-		for (const item of (run.results as Array<{
-			title?: string;
-			description?: string;
-			price?: number;
-			alibabaPrice?: number;
-			estimatedMargin?: number;
-			category?: string;
-			productUrl?: string;
-			imageUrl?: string;
-			salesCount?: number;
-			growthRate?: number;
-			competitionLevel?: string;
-		}>) || []) {
-			try {
-				const productData = {
-					title: item.title || 'Unknown Product',
-					description: item.description || '',
-					priceKRW: item.price || 0,
-					sourcePrice: item.alibabaPrice || 0,
-					marginRate: item.estimatedMargin || 0,
-					category: item.category || 'General',
-					targetPlatform: processData?.platform || 'coupang',
-					sourcePlatform: run.platform,
-					sourceUrl: item.productUrl || '',
-					imageUrls: item.imageUrl ? [item.imageUrl] : [],
-					salesCount: item.salesCount || 0,
-					growthRate: item.growthRate || 0,
-					competitionLevel: item.competitionLevel || 'medium',
-				};
-
-				// This would normally call the products service to create products
-				// For now, we'll just return the processed data
-				processedProducts.push(productData);
-			} catch (error) {
-				console.error('Error processing product:', error);
-			}
-		}
-
-		return {
-			success: true,
-			processedProducts,
-			count: processedProducts.length,
-		};
-	}
-
-	async getScrapingHistory(userId: string) {
-		const runs = await this.scrapingRunModel.find({ userId }).sort({ createdAt: -1 }).limit(50);
-
-		return {
-			success: true,
-			runs,
-			count: runs.length,
-		};
-	}
-
-	async stopScraping(runId: string) {
-			// In a real implementation, this would stop the scraping run
-		// For now, we'll just update the status
-		const run = await this.scrapingRunModel.findOneAndUpdate({ runId }, { status: 'cancelled' }, { new: true });
-
-		if (!run) {
-			return {
-				success: false,
-				error: 'Scraping run not found',
-			};
-		}
-
-		return {
-			success: true,
-			message: 'Scraping stopped successfully',
-		};
-	}
+  private generateId(): string {
+    return Math.random().toString(36).substr(2, 9);
+  }
 }

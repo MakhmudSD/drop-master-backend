@@ -14,10 +14,11 @@ import {
 	DefaultValuePipe,
 	Query,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto } from '../../shared/dto/create-order.dto';
-import { UpdateOrderDto } from '../../shared/dto/update-order.dto';
+import { CreateOrderDto, UpdateOrderDto } from '../../libs/dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrdersController {

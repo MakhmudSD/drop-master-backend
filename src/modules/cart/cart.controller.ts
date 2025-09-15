@@ -11,10 +11,9 @@ import {
 	HttpCode,
 	HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { CartService } from './cart.service';
-import { AddToCartDto } from '../../shared/dto/add-to-cart.dto';
-import { UpdateCartItemDto } from '../../shared/dto/update-cart-item.dto';
+import { AddToCartDto, UpdateCartItemDto } from '../../libs/dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)

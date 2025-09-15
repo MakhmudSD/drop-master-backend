@@ -2,10 +2,13 @@
 import { Injectable, BadRequestException, InternalServerErrorException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User } from '../../shared/schemas/user.schema';
+import { User } from '../../schemas/user.schema';
 import { AuthService } from '../auth/auth.service';
-import { UserInput, LoginInput, OAuthUserInput } from '../../shared/dto/user-input.dto';
+import { CreateUserDto, LoginDto, OAuthUserInputDto } from '../../libs/dto';
 
+type UserInput = CreateUserDto;
+type LoginInput = LoginDto;
+type OAuthUserInput = OAuthUserInputDto;
 @Injectable()
 export class UserService {
 	constructor(

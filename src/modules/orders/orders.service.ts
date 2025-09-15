@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Order, OrderDocument } from '../../shared/schemas/order.schema';
-import { CreateOrderDto } from '../../shared/dto/create-order.dto';
-import { UpdateOrderDto } from '../../shared/dto/update-order.dto';
+import { Order, OrderDocument } from '../../schemas/order.schema';
+import { CreateOrderDto, UpdateOrderDto } from '../../libs/dto';
+
 
 @Injectable()
 export class OrdersService {

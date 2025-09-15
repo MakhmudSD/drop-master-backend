@@ -1,9 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { User } from '../../shared/schemas/user.schema';
+import { User } from '../../schemas/user.schema';
 import { UserService } from './user.service';
-import { UserInput, LoginInput, OAuthUserInput } from '../../shared/dto/user-input.dto';
+import { CreateUserDto, LoginDto, OAuthUserInputDto } from '../../libs/dto';
 
+type UserInput = CreateUserDto;
+type LoginInput = LoginDto;
+type OAuthUserInput = OAuthUserInputDto;
 @Resolver(() => User)
 export class UserResolver {
 	constructor(private readonly userService: UserService) {}

@@ -1,11 +1,11 @@
-import { UserDocument } from 'src/shared/schemas/user.schema';
+import { UserDocument } from 'src/schemas/user.schema';
 import { Controller, Get, Req, UseGuards, Post, Body, Query } from '@nestjs/common';
-import { Request } from 'express';
 import { AuthService } from './auth.service';
-import { OAuthUserInput, UserInput, LoginInput } from '../../shared/dto/user-input.dto';
-import { Public } from '../../shared/decorators/public.decorator';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { CreateUserDto, LoginDto, OAuthUserInputDto } from '../../libs/dto';
+import { Public } from './decorators/public.decorator';
 import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+
 
 @Controller('auth')
 export class AuthController {
@@ -17,7 +17,7 @@ export class AuthController {
   // ---------- REGISTER ----------
   @Post('register')
   @Public()
-  async register(@Body() userInput: UserInput) {
+  async register(@Body() userInput: CreateUserDto) {
     try {
       const user = await this.authService.register(userInput);
       return {
@@ -50,7 +50,7 @@ export class AuthController {
   // ---------- LOGIN ----------
   @Post('login')
   @Public()
-  async login(@Body() loginInput: LoginInput) {
+  async login(@Body() loginInput: LoginDto) {
     try {
       const user = await this.authService.login(loginInput);
       return {
@@ -115,7 +115,7 @@ export class AuthController {
   // ---------- DIRECT OAUTH LOGIN ----------
   @Post('oauth-login')
   @Public()
-  async oAuthLogin(@Body() oAuthUser: OAuthUserInput) {
+  async oAuthLogin(@Body() oAuthUser: OAuthUserInputDto) {
     try {
       const user = await this.authService.oAuthLogin(oAuthUser);
       return {

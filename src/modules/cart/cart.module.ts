@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
-import { CartItem, CartItemSchema } from '../../shared/schemas/cart-item.schema';
+import { CartItem, CartItemSchema } from '../../schemas/cart-item.schema';
 
 @Module({
   imports: [

@@ -2,16 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AiTranslationService } from '../scraping/ai-translation.service';
-import { RealScraperService } from '../scraping/real-scraper.service';
-import { Product, ProductDocument } from '../../shared/schemas/product.schema';
-import { CreateProductDto } from '../../shared/dto/create-product.dto';
-import { BulkOperationsDto } from '../../shared/dto/bulk-operations.dto';
+import { ScrapingService } from '../scraping/scraping.service';
+import { Product, ProductDocument } from '../../schemas/product.schema';
+import { CreateProductDto, BulkOperationsDto } from '../../libs/dto';
 @Injectable()
 export class ProductsService {
 	constructor(
 		@InjectModel(Product.name) private productModel: Model<ProductDocument>,
 		private aiTranslationService: AiTranslationService,
-		private realScraperService: RealScraperService,
+		private scrapingService: ScrapingService,
 	) {}
 
 	async getProducts(
@@ -56,25 +55,9 @@ export class ProductsService {
 	async getPopularProducts(platform: string = 'coupang', limit: number = 20) {
 		try {
 			let products: any[] = [];
-			switch (platform) {
-				case 'coupang':
-					products = await this.realScraperService.scrapeCoupangProducts([], limit);
-					break;
-				case 'naver':
-					products = await this.realScraperService.scrapeNaverProducts([], limit);
-					break;
-				case '11st':
-					products = await this.realScraperService.scrape11stProducts([], limit);
-					break;
-				case 'aliexpress':
-					products = await this.realScraperService.scrapeAliExpressProducts([], limit);
-					break;
-				case 'alibaba':
-					products = await this.realScraperService.scrapeAlibabaProducts([], limit);
-					break;
-				default:
-					products = await this.realScraperService.scrapeCoupangProducts([], limit);
-			}
+			// For now, return mock data since we need actual product URLs to scrape
+			// In a real implementation, you would have a database of popular product URLs
+			products = this.getFallbackProducts(platform, limit);
 
 			return {
 				success: true,
@@ -177,7 +160,7 @@ export class ProductsService {
 		const { description, ...productData } = createProductDto;
 
 		// Translate description to Korean
-		const descriptionKorean = await this.aiTranslationService.translateProductDescription(description);
+		const descriptionKorean = description ? await this.aiTranslationService.translateProductDescription(description) : undefined;
 
 		const product = new this.productModel({
 			...productData,

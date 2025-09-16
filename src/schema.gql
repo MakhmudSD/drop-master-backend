@@ -1,0 +1,125 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AuthResponseType {
+  message: String
+  success: Boolean!
+  token: String
+  user: UserGraphQLType
+}
+
+input CreateUserInput {
+  avatar: String
+  email: String!
+  name: String!
+  password: String!
+  phone: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type LogoutResponseType {
+  message: String!
+  success: Boolean!
+}
+
+type Mutation {
+  login(email: String!, password: String!): AuthResponseType!
+  logout: LogoutResponseType!
+  oAuthLogin(input: OAuthUserInput!): UserGraphQLType!
+  refreshToken: RefreshTokenResponseType!
+  register(email: String!, name: String!, password: String!): AuthResponseType!
+  signup(input: CreateUserInput!): UserGraphQLType!
+  updateUser(input: UpdateUserInput!, userId: String!): UserGraphQLType!
+  updateUserProfile(address: String, avatar: String, name: String, phone: String): UpdateProfileResponseType!
+}
+
+input OAuthUserInput {
+  email: String!
+  name: String!
+  profileImage: String
+  provider: String!
+  providerId: String!
+}
+
+type ProductType {
+  alibabaPrice: Float
+  availability: String
+  brand: String
+  category: String
+  competitionLevel: String
+  description: String
+  discount: Int
+  estimatedMargin: Int
+  growthRate: Float
+  id: ID!
+  imageUrl: String!
+  link: String
+  location: String
+  name: String!
+  originalPrice: String
+  platform: String!
+  price: Int!
+  rating: Float
+  reviewCount: Int
+  salesCount: Int
+  seller: String
+  shippingInfo: String
+  stock: Int
+  tags: [String!]
+  title: String!
+}
+
+type Query {
+  getUser(userId: String!): UserGraphQLType!
+  getUserByEmail(email: String!): UserGraphQLType!
+  popularProducts(limit: Float, platform: String!, sortBy: String): [ProductType!]!
+  product(id: String!): ProductType!
+  userProfile: UserType!
+}
+
+type RefreshTokenResponseType {
+  message: String
+  success: Boolean!
+  token: String
+}
+
+type UpdateProfileResponseType {
+  message: String
+  success: Boolean!
+  user: UserGraphQLType
+}
+
+input UpdateUserInput {
+  address: String
+  avatar: String
+  name: String
+  phone: String
+}
+
+type UserGraphQLType {
+  address: String
+  avatar: String
+  createdAt: DateTime
+  email: String!
+  id: ID!
+  isActive: Boolean
+  name: String!
+  phone: String
+  role: String
+  updatedAt: DateTime
+}
+
+type UserType {
+  address: String
+  avatar: String
+  email: String!
+  id: ID!
+  name: String!
+  phone: String
+  role: String!
+}

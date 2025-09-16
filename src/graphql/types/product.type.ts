@@ -1,0 +1,79 @@
+import { ObjectType, Field, ID, Int, Float } from '@nestjs/graphql';
+
+@ObjectType()
+export class ProductType {
+  @Field(() => ID)
+  id: string;
+
+  @Field()
+  title: string;
+
+  @Field()
+  name: string;
+
+  @Field(() => Int)
+  price: number;
+
+  @Field()
+  imageUrl: string;
+
+  @Field(() => Int, { nullable: true })
+  salesCount?: number;
+
+  @Field(() => Float, { nullable: true })
+  growthRate?: number;
+
+  @Field(() => Int, { nullable: true })
+  estimatedMargin?: number;
+
+  @Field()
+  platform: string;
+
+  @Field({ nullable: true })
+  description?: string;
+
+  @Field({ nullable: true })
+  brand?: string;
+
+  @Field({ nullable: true })
+  category?: string;
+
+  @Field({ nullable: true })
+  availability?: string;
+
+  @Field(() => Float, { nullable: true })
+  rating?: number;
+
+  @Field(() => Int, { nullable: true })
+  reviewCount?: number;
+
+  @Field({ nullable: true })
+  shippingInfo?: string;
+
+  @Field(() => [String], { nullable: true })
+  tags?: string[];
+
+  @Field({ nullable: true })
+  originalPrice?: string;
+
+  @Field(() => Int, { nullable: true })
+  discount?: number;
+
+  @Field(() => Int, { nullable: true })
+  stock?: number;
+
+  @Field({ nullable: true })
+  seller?: string;
+
+  @Field({ nullable: true })
+  location?: string;
+
+  @Field({ nullable: true })
+  link?: string;
+
+  @Field({ nullable: true })
+  competitionLevel?: string;
+
+  @Field(() => Float, { nullable: true })
+  alibabaPrice?: number;
+}

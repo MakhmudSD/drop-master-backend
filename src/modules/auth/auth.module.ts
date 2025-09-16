@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthResolver } from './auth.resolver';
 import { GoogleStrategy } from '../../libs/strategies/google.strategy';
 import { KakaoStrategy } from '../../libs/strategies/kakao.strategy';
 import { NaverStrategy } from '../../libs/strategies/naver.strategy';
@@ -25,7 +26,7 @@ import { OAuthController } from './oauth.controller';
   ],
   
   controllers: [AuthController, OAuthController],
-  providers: [AuthService, GoogleStrategy, KakaoStrategy, NaverStrategy, JwtStrategy],
+  providers: [AuthService, AuthResolver, GoogleStrategy, KakaoStrategy, NaverStrategy, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

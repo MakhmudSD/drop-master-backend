@@ -19,6 +19,7 @@ import { AutomationModule } from './modules/automation/automation.module';
 import { CartModule } from './modules/cart/cart.module';
 import { ScrapingModule } from './modules/scraping/scraping.module';
 import { ApolloModule } from '../apollo/apollo.module';
+import { GraphQLAppModule } from './graphql/graphql.module';
 
 // Schemas
 import { User, UserSchema } from './schemas/user.schema';
@@ -61,6 +62,8 @@ import { UsersModule } from './modules/users/user.module';
     CartModule,
     ScrapingModule,
     ApolloModule,
+    GraphQLAppModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

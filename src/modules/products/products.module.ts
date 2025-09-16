@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
+import { ProductsResolver } from './products.resolver';
 import { Product, ProductSchema } from '../../schemas/product.schema';
 import { ScrapingModule } from '../scraping/scraping.module';
 import { AiTranslationService } from '../scraping/ai-translation.service';
@@ -19,6 +20,7 @@ import { ScrapingService } from '../scraping/scraping.service';
 	controllers: [ProductsController],
 	providers: [
 		ProductsService,
+		ProductsResolver,
 		AiTranslationService,
 		ScrapingService,
 	],

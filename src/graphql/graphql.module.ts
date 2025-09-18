@@ -11,7 +11,10 @@ import { join } from 'path';
       sortSchema: true,
       playground: true,
       introspection: true,
-      context: ({ req }) => ({ req }),
+      context: ({ req, res }) => {
+      console.log('GraphQL Context - Headers:', req?.headers?.authorization ? 'Authorization header present' : 'No auth header');
+      return { req, res };
+    },
       formatError: (error) => {
         console.error('GraphQL Error:', error);
         return {

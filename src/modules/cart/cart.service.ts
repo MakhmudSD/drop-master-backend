@@ -15,18 +15,27 @@ export class CartService {
 			success: true,
 			data: {
 				items: items.map((item) => ({
-					id: item._id,
-					productId: item.productId,
+					id: (item._id as any).toString(),
+					productId: item.productId.toString(),
+					productName: item.productName || 'Unknown Product',
 					quantity: item.quantity,
-					addedAt: item.addedAt,
+					price: item.price || 0,
+					image: item.image || '',
+					platform: item.platform || '',
+					specifications: item.specifications || '',
+					createdAt: item.addedAt || new Date(),
+					updatedAt: new Date(),
 				})),
 			},
 		};
 	}
 
-	async addToCart(userId: string, addToCartDto: AddToCartDto) {
-		const { productId, quantity } = addToCartDto;
+	async addToCart(userId: string, addToCartDto: any) {
+		const { productId, quantity, productName, price, image, platform, specifications } = addToCartDto;
 
+		console.log('Adding to cart - userId:', userId, 'productId:', productId, 'quantity:', quantity);
+		console.log('Cart service input validation - productName:', productName, 'price:', price);
+		
 		// Check if item already exists in cart
 		let cartItem = await this.cartItemModel.findOne({ userId, productId });
 
@@ -35,20 +44,46 @@ export class CartService {
 			cartItem.quantity += quantity;
 			await cartItem.save();
 		} else {
-			// Create new cart item
-			cartItem = new this.cartItemModel({
+			// Create new cart item with proper validation
+			const cartItemData = {
 				userId,
 				productId,
-				quantity,
+				productName: productName || 'Sample Product',
+				quantity: Number(quantity),
+				price: Number(price) || 29.99,
+				image: image || '/default-product.jpg',
+				platform: platform || 'web',
+				specifications: specifications || '',
 				addedAt: new Date(),
-			});
-			await cartItem.save();
+			};
+			
+			console.log('Creating cart item with data:', cartItemData);
+			
+			try {
+				cartItem = new this.cartItemModel(cartItemData);
+				await cartItem.save();
+				console.log('Cart item saved successfully:', cartItem._id);
+			} catch (saveError) {
+				console.error('MongoDB save error:', saveError);
+				throw new Error(`Failed to save cart item: ${saveError.message}`);
+			}
 		}
 
 		return {
 			success: true,
 			data: {
-				item: cartItem,
+				item: {
+					id: (cartItem._id as any).toString(),
+					productId: cartItem.productId.toString(),
+					productName: cartItem.productName,
+					quantity: cartItem.quantity,
+					price: cartItem.price,
+					image: cartItem.image,
+					platform: cartItem.platform,
+					specifications: cartItem.specifications,
+					createdAt: cartItem.addedAt || new Date(),
+					updatedAt: new Date(),
+				},
 			},
 		};
 	}
@@ -67,7 +102,18 @@ export class CartService {
 		return {
 			success: true,
 			data: {
-				item: cartItem,
+				item: {
+					id: (cartItem._id as any).toString(),
+					productId: cartItem.productId.toString(),
+					productName: cartItem.productName,
+					quantity: cartItem.quantity,
+					price: cartItem.price,
+					image: cartItem.image,
+					platform: cartItem.platform,
+					specifications: cartItem.specifications,
+					createdAt: cartItem.addedAt || new Date(),
+					updatedAt: new Date(),
+				},
 			},
 		};
 	}

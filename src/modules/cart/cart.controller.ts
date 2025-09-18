@@ -28,7 +28,7 @@ export class CartController {
 	@Post('add')
 	@HttpCode(HttpStatus.CREATED)
 	async addToCart(@Request() req, @Body() addToCartDto: AddToCartDto) {
-		return this.cartService.addToCart(req.user.userId, addToCartDto);
+		return this.cartService.addToCart(req.user.userId, addToCartDto as any);
 	}
 
 	@Patch(':itemId')

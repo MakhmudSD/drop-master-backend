@@ -19,16 +19,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 	async validate(payload: any) {
 		try {
-			// The payload is already verified by JWT, we just need to get the user
-			const user = await this.authService.getUserByEmail(payload.email);
-			if (!user) {
-				throw new UnauthorizedException('User not found');
-			}
-			return {
-				userId: (user as any)._id,
-				...user,
+			console.log('JWT Strategy - validating payload:', payload);
+			
+			// For JWT validation, we can trust the payload and return the user info directly
+			// since the JWT signature was already verified
+			const user = {
+				userId: payload.sub,
+				email: payload.email,
+				role: payload.role,
+				provider: payload.provider,
+				googleId: payload.googleId,
 			};
+			
+			console.log('JWT Strategy - returning user:', user);
+			return user;
 		} catch (error) {
+			console.error('JWT Strategy error:', error);
 			throw new UnauthorizedException('Invalid token');
 		}
 	}

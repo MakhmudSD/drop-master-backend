@@ -2,11 +2,45 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AddCartItemInput {
+  productId: ID!
+  quantity: Int!
+  specifications: String
+}
+
 type AuthResponseType {
   message: String
   success: Boolean!
   token: String
   user: UserGraphQLType
+}
+
+type CartItemType {
+  createdAt: DateTime!
+  id: ID!
+  image: String
+  platform: String
+  price: Float!
+  productId: ID!
+  productName: String!
+  quantity: Int!
+  specifications: String
+  updatedAt: DateTime!
+}
+
+type CartMutationResponse {
+  cartItem: CartItemType
+  message: String
+  success: Boolean!
+}
+
+type CartSummaryType {
+  discountAmount: Float!
+  finalAmount: Float!
+  shippingCost: Float!
+  taxAmount: Float!
+  totalAmount: Float!
+  totalItems: Int!
 }
 
 input CreateUserInput {
@@ -28,12 +62,16 @@ type LogoutResponseType {
 }
 
 type Mutation {
+  addCartItem(input: AddCartItemInput!): CartMutationResponse!
+  clearCart: CartMutationResponse!
   login(email: String!, password: String!): AuthResponseType!
   logout: LogoutResponseType!
   oAuthLogin(input: OAuthUserInput!): UserGraphQLType!
   refreshToken: RefreshTokenResponseType!
   register(email: String!, name: String!, password: String!): AuthResponseType!
+  removeCartItem(id: String!): CartMutationResponse!
   signup(input: CreateUserInput!): UserGraphQLType!
+  updateCartItem(input: UpdateCartItemInput!): CartMutationResponse!
   updateUser(input: UpdateUserInput!, userId: String!): UserGraphQLType!
   updateUserProfile(address: String, avatar: String, name: String, phone: String): UpdateProfileResponseType!
 }
@@ -75,6 +113,8 @@ type ProductType {
 }
 
 type Query {
+  cartItems: [CartItemType!]!
+  cartSummary: CartSummaryType!
   getUser(userId: String!): UserGraphQLType!
   getUserByEmail(email: String!): UserGraphQLType!
   popularProducts(limit: Float, platform: String!, sortBy: String): [ProductType!]!
@@ -86,6 +126,11 @@ type RefreshTokenResponseType {
   message: String
   success: Boolean!
   token: String
+}
+
+input UpdateCartItemInput {
+  id: ID!
+  quantity: Int!
 }
 
 type UpdateProfileResponseType {

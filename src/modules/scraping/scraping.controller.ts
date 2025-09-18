@@ -39,7 +39,7 @@ export class ScrapingController {
   }
 
   @Get('health')
-  async healthCheck() {
+   healthCheck() {
     return {
       success: true,
       message: 'Scraping service is running',

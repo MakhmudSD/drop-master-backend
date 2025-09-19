@@ -5,10 +5,11 @@ export interface ScrapedProduct {
   title: string;
   name: string;
   price: number;
-  originalPrice?: number;
+  originalPrice?: string;
   imageUrl: string;
   imageUrls?: string[];
   url: string;
+  link?: string;
   platform: string;
   category?: string;
   salesCount?: number;
@@ -21,6 +22,11 @@ export interface ScrapedProduct {
   availability?: string;
   shippingInfo?: string;
   tags?: string[];
+  discount?: number;
+  stock?: number;
+  seller?: string;
+  location?: string;
+  competitionLevel?: string;
 }
 
 export class ScrapeProductDto {

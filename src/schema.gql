@@ -91,22 +91,23 @@ type ProductType {
   category: String
   competitionLevel: String
   description: String
-  discount: Int
-  estimatedMargin: Int
+  discount: Float
+  estimatedMargin: Float
   growthRate: Float
   id: ID!
   imageUrl: String!
-  link: String
+  link: String!
   location: String
   name: String!
   originalPrice: String
   platform: String!
-  price: Int!
+  price: Float!
   rating: Float
   reviewCount: Int
   salesCount: Int
   seller: String
   shippingInfo: String
+  specifications: String
   stock: Int
   tags: [String!]
   title: String!
@@ -115,9 +116,10 @@ type ProductType {
 type Query {
   cartItems: [CartItemType!]!
   cartSummary: CartSummaryType!
+  fetchProducts(platform: String!, queries: [String!]!): [SimpleProduct!]!
   getUser(userId: String!): UserGraphQLType!
   getUserByEmail(email: String!): UserGraphQLType!
-  popularProducts(limit: Float, platform: String!, sortBy: String): [ProductType!]!
+  popularProducts(limit: Float, platform: String!, query: String): [ProductType!]!
   product(id: String!): ProductType!
   userProfile: UserType!
 }
@@ -126,6 +128,11 @@ type RefreshTokenResponseType {
   message: String
   success: Boolean!
   token: String
+}
+
+type SimpleProduct {
+  link: String!
+  title: String!
 }
 
 input UpdateCartItemInput {

@@ -4,6 +4,8 @@ import { HttpModule } from '@nestjs/axios';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
 import { ProductsResolver } from './products.resolver';
+import { MultiPlatformProductsService } from './multi-platform-products.service';
+import { MultiPlatformProductsResolver } from './multi-platform-products.resolver';
 import { Product, ProductSchema } from '../../schemas/product.schema';
 import { ScrapingModule } from '../scraping/scraping.module';
 import { AiTranslationService } from '../scraping/ai-translation.service';
@@ -21,6 +23,8 @@ import { ScrapingService } from '../scraping/scraping.service';
 	providers: [
 		ProductsService,
 		ProductsResolver,
+		MultiPlatformProductsService,
+		MultiPlatformProductsResolver,
 		AiTranslationService,
 		ScrapingService,
 	],

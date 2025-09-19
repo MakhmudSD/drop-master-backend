@@ -47,14 +47,6 @@ export class ProductsController {
 		});
 	}
 
-	@Public()
-	@Get('popular')
-	async getPopularProducts(
-		@Query('platform', new DefaultValuePipe('coupang')) platform: string,
-		@Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-	) {
-		return this.productsService.getPopularProducts(platform, limit);
-	}
 
 
 	@Get(':id')

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
 import { ProductsService } from './products.service';
 import { ProductType } from '../../graphql/types/product.type';
@@ -7,53 +8,55 @@ export class ProductsResolver {
   constructor(private readonly productsService: ProductsService) {}
 
   @Query(() => [ProductType], { name: 'popularProducts' })
-  async getPopularProducts(
+  public async getPopularProducts(
     @Args('platform') platform: string,
     @Args('limit', { nullable: true }) limit?: number,
-    @Args('sortBy', { nullable: true }) sortBy?: string,
+    @Args('query', { nullable: true }) query?: string,
   ): Promise<ProductType[]> {
-    const result = await this.productsService.getPopularProducts(platform, limit);
+    const result = await this.productsService.getPopularProducts(platform, limit, query);
     // Transform the products to match our GraphQL type
     return (result.products || []).map((product: any) => ({
       id: product.id || product._id || `${platform}-${Date.now()}`,
       title: product.title || product.name || 'Product Title',
       name: product.name || product.title || 'Product Name',
-      price: product.price || 0,
-      imageUrl: product.imageUrl || product.image || 'https://via.placeholder.com/300x300',
-      salesCount: product.salesCount || 0,
-      growthRate: product.growthRate || 0,
-      estimatedMargin: product.estimatedMargin || 0,
+      price: parseFloat(product.price) || 0.0,
+      imageUrl: product.imageUrl || product.image || '/images/placeholder.png',
+      link: product.link || product.url || '#',
       platform: product.platform || platform,
+      salesCount: parseInt(product.salesCount) || 0,
+      growthRate: parseFloat(product.growthRate) || 0.0,
+      estimatedMargin: parseFloat(product.estimatedMargin) || 0.0,
       description: product.description || '',
       brand: product.brand || '',
       category: product.category || '',
       availability: product.availability || 'In Stock',
-      rating: product.rating || 0,
-      reviewCount: product.reviewCount || 0,
+      rating: parseFloat(product.rating) || 0.0,
+      reviewCount: parseInt(product.reviewCount) || 0,
       shippingInfo: product.shippingInfo || '',
       tags: product.tags || [],
+      specifications: product.specifications || '',
       originalPrice: product.originalPrice || '',
-      discount: product.discount || 0,
-      stock: product.stock || 0,
+      discount: parseFloat(product.discount) || 0.0,
+      stock: parseInt(product.stock) || 0,
       seller: product.seller || '',
       location: product.location || '',
-      link: product.link || '',
       competitionLevel: product.competitionLevel || 'medium',
-      alibabaPrice: product.alibabaPrice || 0,
+      alibabaPrice: parseFloat(product.alibabaPrice) || 0.0,
     }));
   }
 
   @Query(() => ProductType, { name: 'product' })
-  async getProduct(@Args('id') id: string): Promise<ProductType> {
+  public getProduct(@Args('id') id: string): Promise<ProductType> {
     // For now, return a mock product since findById doesn't exist
-    return {
+    return Promise.resolve({
       id: id,
       title: 'Sample Product',
       name: 'Sample Product',
-      price: 10000,
-      imageUrl: 'https://via.placeholder.com/300x300',
+      price: 10000.0,
+      imageUrl: '/images/placeholder.png',
+      link: '#',
       platform: 'coupang',
       description: 'Sample product description',
-    };
+    });
   }
 }

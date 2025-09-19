@@ -11,11 +11,17 @@ export class ProductType {
   @Field()
   name: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   price: number;
 
   @Field()
   imageUrl: string;
+
+  @Field()
+  link: string;
+
+  @Field()
+  platform: string;
 
   @Field(() => Int, { nullable: true })
   salesCount?: number;
@@ -23,11 +29,8 @@ export class ProductType {
   @Field(() => Float, { nullable: true })
   growthRate?: number;
 
-  @Field(() => Int, { nullable: true })
+  @Field(() => Float, { nullable: true })
   estimatedMargin?: number;
-
-  @Field()
-  platform: string;
 
   @Field({ nullable: true })
   description?: string;
@@ -54,9 +57,12 @@ export class ProductType {
   tags?: string[];
 
   @Field({ nullable: true })
+  specifications?: string;
+
+  @Field({ nullable: true })
   originalPrice?: string;
 
-  @Field(() => Int, { nullable: true })
+  @Field(() => Float, { nullable: true })
   discount?: number;
 
   @Field(() => Int, { nullable: true })
@@ -67,9 +73,6 @@ export class ProductType {
 
   @Field({ nullable: true })
   location?: string;
-
-  @Field({ nullable: true })
-  link?: string;
 
   @Field({ nullable: true })
   competitionLevel?: string;

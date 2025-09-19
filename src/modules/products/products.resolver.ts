@@ -12,8 +12,9 @@ export class ProductsResolver {
     @Args('platform') platform: string,
     @Args('limit', { nullable: true }) limit?: number,
     @Args('query', { nullable: true }) query?: string,
+    @Args('timeFilter', { nullable: true }) timeFilter?: string,
   ): Promise<ProductType[]> {
-    const result = await this.productsService.getPopularProducts(platform, limit, query);
+    const result = await this.productsService.getPopularProducts(platform, limit, query, timeFilter);
     // Transform the products to match our GraphQL type
     return (result.products || []).map((product: any) => ({
       id: product.id || product._id || `${platform}-${Date.now()}`,

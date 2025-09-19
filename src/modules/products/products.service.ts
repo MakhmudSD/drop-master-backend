@@ -54,15 +54,30 @@ export class ProductsService {
 		};
 	}
 
-	public async getPopularProducts(platform: string = 'coupang', limit: number = 20, query?: string) {
+	public async getPopularProducts(platform: string = 'coupang', limit: number = 20, query?: string, timeFilter?: string) {
 		try {
 			let products: any[] = [];
 			
 			// If platform is 'naver' and ScrapingService is configured, fetch products
 			if (platform === 'naver') {
 				try {
-					const searchQuery = query || '인기상품';
-					console.log(`Fetching Naver products with query: ${searchQuery}`);
+					// Adjust search query based on time filter
+					let searchQuery = query || '인기상품';
+					if (timeFilter) {
+						switch (timeFilter) {
+							case 'daily':
+								searchQuery = `${searchQuery} 일간`;
+								break;
+							case 'weekly':
+								searchQuery = `${searchQuery} 주간`;
+								break;
+							case 'monthly':
+								searchQuery = `${searchQuery} 월간`;
+								break;
+						}
+					}
+					
+					console.log(`Fetching Naver products with query: ${searchQuery}, timeFilter: ${timeFilter}`);
 					
 					const scrapedProducts = await this.scrapingService.scrapeNaverProducts(searchQuery, limit);
 					
@@ -112,7 +127,7 @@ export class ProductsService {
 			}
 			
 			// For other platforms or when Naver scraping fails, return fallback data
-			products = this.getFallbackProducts(platform, limit);
+			products = this.getFallbackProducts(platform, limit, timeFilter);
 
 			return {
 				success: true,
@@ -125,7 +140,7 @@ export class ProductsService {
 			console.error(`${platform} scraping error:`, error);
 			
 			// Provide fallback demo data when scraping fails
-			const fallbackProducts = this.getFallbackProducts(platform, limit);
+			const fallbackProducts = this.getFallbackProducts(platform, limit, timeFilter);
 			
 			return {
 				success: true,
@@ -137,9 +152,39 @@ export class ProductsService {
 		}
 	}
 
-	private getFallbackProducts(platform: string, limit: number) {
+	private getFallbackProducts(platform: string, limit: number, timeFilter?: string) {
 		const platformProducts = FALLBACK_PRODUCTS[platform] || FALLBACK_PRODUCTS.coupang;
-		return platformProducts.slice(0, Math.min(limit, platformProducts.length));
+		
+		// Modify products based on time filter to simulate different data
+		let products = [...platformProducts];
+		
+		if (timeFilter) {
+			products = products.map(product => {
+				let multiplier = 1;
+				switch (timeFilter) {
+					case 'daily':
+						multiplier = 1.2; // Higher growth rates for daily
+						break;
+					case 'weekly':
+						multiplier = 1.0; // Normal rates for weekly
+						break;
+					case 'monthly':
+						multiplier = 0.8; // Lower rates for monthly
+						break;
+				}
+				
+				return {
+					...product,
+					growthRate: Math.round((product.growthRate || 0) * multiplier * 10) / 10,
+					salesCount: Math.round((product.salesCount || 0) * multiplier),
+				};
+			});
+			
+			// Sort by growth rate for time-based relevance
+			products.sort((a, b) => (b.growthRate || 0) - (a.growthRate || 0));
+		}
+		
+		return products.slice(0, Math.min(limit, products.length));
 	}
 
 	async getProduct(id: string, userId: string) {

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as cheerio from 'cheerio';
+import * as puppeteer from 'puppeteer';
 import { ScrapeProductDto, ScrapedProduct } from '../../libs/dto';
 
 @Injectable()
@@ -269,85 +270,239 @@ export class ScrapingService {
     return Math.random().toString(36).substr(2, 9);
   }
 
-  // New method for scraping Naver products with search query
+  // New method for scraping Naver products with Puppeteer (avoiding HTTP 418)
   async scrapeNaverProducts(query: string, limit: number = 20): Promise<ScrapedProduct[]> {
+    let browser: puppeteer.Browser | null = null;
+    
     try {
-      console.log(`Scraping Naver products for query: ${query}, limit: ${limit}`);
+      console.log(`Scraping Naver products with Puppeteer for query: ${query}, limit: ${limit}`);
       
-      // For now, we'll use a search approach since we can't access Naver's internal APIs
-      // In a real implementation, you might use Puppeteer for more complex scraping
-      const searchUrl = `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(query)}`;
-      
-      const response = await firstValueFrom(
-        this.httpService.get(searchUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
-          },
-        }),
-      );
-
-      const $ = cheerio.load(response.data);
-      const products: ScrapedProduct[] = [];
-      
-      // Naver Shopping search results selectors (these may need adjustment based on actual HTML structure)
-      $('.product_item, .basicList_item__2XT81').each((index, element) => {
-        if (products.length >= limit) return false;
-        
-        const $element = $(element);
-        
-        const title = $element.find('.product_title, .basicList_title__3P9Q7').text().trim() ||
-                     $element.find('a[data-i]').attr('title') || '';
-        
-        const priceText = $element.find('.price_num, .price_price__2WUXn').text().trim() ||
-                         $element.find('.price').text().trim();
-        const price = this.parsePrice(priceText);
-        
-        const imageUrl = $element.find('img').attr('src') ||
-                        $element.find('img').attr('data-src') || '';
-        
-        const link = $element.find('a').attr('href') || '';
-        const fullLink = link.startsWith('http') ? link : `https://shopping.naver.com${link}`;
-        
-        const seller = $element.find('.product_mall, .basicList_mall__3EFGQ').text().trim();
-        
-        if (title && price > 0) {
-          products.push({
-            id: this.generateId(),
-            title: title.replace(/<[^>]*>/g, ''), // Remove HTML tags
-            name: title.replace(/<[^>]*>/g, ''),
-            price,
-            imageUrl: imageUrl.startsWith('//') ? `https:${imageUrl}` : imageUrl,
-            url: fullLink,
-            platform: 'naver',
-            category: '',
-            salesCount: Math.floor(Math.random() * 1000) + 100, // Mock data
-            rating: Math.floor(Math.random() * 50) / 10 + 4, // Mock rating 4.0-4.9
-            reviewCount: Math.floor(Math.random() * 500) + 50, // Mock review count
-            seller: seller,
-            description: `${title} - 네이버 쇼핑에서 판매중`,
-            brand: '',
-            availability: 'In Stock',
-            shippingInfo: '무료배송',
-            tags: [query],
-            originalPrice: '',
-            discount: 0,
-            stock: Math.floor(Math.random() * 100) + 10,
-            location: '대한민국',
-            link: fullLink,
-            competitionLevel: 'medium',
-          });
-        }
+      // Launch headless Chrome
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
       });
 
-      console.log(`Successfully scraped ${products.length} Naver products`);
+      const page = await browser.newPage();
+      
+      // Set realistic User-Agent and viewport
+      await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      await page.setViewport({ width: 1920, height: 1080 });
+      
+      // Enable JavaScript and images
+      await page.setJavaScriptEnabled(true);
+      
+      // Set extra headers
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+      });
+
+      const searchUrl = `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(query)}`;
+      
+      // Navigate to the page with proper timeout
+      await page.goto(searchUrl, { 
+        waitUntil: 'networkidle2', 
+        timeout: 30000 
+      });
+
+      // Wait for product elements to load
+      try {
+        await page.waitForSelector('[data-testid="basicList_item"], .basicList_item__2XT81, .product_item', { timeout: 10000 });
+      } catch (waitError) {
+        console.log('Product selector not found, proceeding with available content');
+      }
+
+      // Extract product data
+      const products = await page.evaluate((searchQuery, limitCount) => {
+        const results: any[] = [];
+        
+        // Try multiple selectors for product items
+        const productSelectors = [
+          '[data-testid="basicList_item"]',
+          '.basicList_item__2XT81',
+          '.product_item',
+          '.basicList_item',
+          '.product',
+          '[class*="item"]'
+        ];
+        
+        let productElements: NodeListOf<Element> | null = null;
+        
+        for (const selector of productSelectors) {
+          productElements = document.querySelectorAll(selector);
+          if (productElements.length > 0) {
+            console.log(`Found ${productElements.length} products with selector: ${selector}`);
+            break;
+          }
+        }
+        
+        if (!productElements || productElements.length === 0) {
+          console.log('No product elements found with any selector');
+          return results;
+        }
+
+        Array.from(productElements).slice(0, limitCount).forEach((element, index) => {
+          try {
+            // Extract title
+            const titleSelectors = [
+              '.basicList_title__3P9Q7',
+              '.product_title',
+              '[data-testid="basicList_title"]',
+              '.title',
+              'h3',
+              'h2',
+              '[class*="title"]'
+            ];
+            
+            let title = '';
+            for (const selector of titleSelectors) {
+              const titleEl = element.querySelector(selector);
+              if (titleEl) {
+                title = titleEl.textContent?.trim() || '';
+                if (title) break;
+              }
+            }
+            
+            if (!title) {
+              const linkEl = element.querySelector('a');
+              title = linkEl?.getAttribute('title') || linkEl?.textContent?.trim() || '';
+            }
+
+            // Extract price
+            const priceSelectors = [
+              '.price_num',
+              '.price_price__2WUXn',
+              '.price',
+              '[data-testid="basicList_price"]',
+              '[class*="price"]'
+            ];
+            
+            let priceText = '';
+            for (const selector of priceSelectors) {
+              const priceEl = element.querySelector(selector);
+              if (priceEl) {
+                priceText = priceEl.textContent?.trim() || '';
+                if (priceText) break;
+              }
+            }
+            
+            const price = parseInt(priceText.replace(/[^\d]/g, '')) || 0;
+
+            // Extract image
+            const imageSelectors = [
+              'img[src]',
+              'img[data-src]',
+              'img[data-original]',
+              '[data-testid="basicList_thumbnail"] img'
+            ];
+            
+            let imageUrl = '';
+            for (const selector of imageSelectors) {
+              const imgEl = element.querySelector(selector);
+              if (imgEl) {
+                imageUrl = imgEl.getAttribute('src') || 
+                          imgEl.getAttribute('data-src') || 
+                          imgEl.getAttribute('data-original') || '';
+                if (imageUrl) {
+                  // Clean up image URL
+                  if (imageUrl.startsWith('//')) {
+                    imageUrl = `https:${imageUrl}`;
+                  } else if (imageUrl.startsWith('/')) {
+                    imageUrl = `https://shopping.naver.com${imageUrl}`;
+                  } else if (!imageUrl.startsWith('http')) {
+                    imageUrl = `https://shopping.naver.com/${imageUrl}`;
+                  }
+                  
+                  // Validate image URL format
+                  if (imageUrl.includes('http') && !imageUrl.includes('undefined') && !imageUrl.includes('null')) {
+                    break;
+                  } else {
+                    imageUrl = '';
+                  }
+                }
+              }
+            }
+
+            // Extract link
+            const linkEl = element.querySelector('a');
+            let link = linkEl?.getAttribute('href') || '';
+            if (link && !link.startsWith('http')) {
+              link = `https://shopping.naver.com${link}`;
+            }
+
+            // Extract seller
+            const sellerSelectors = [
+              '.basicList_mall__3EFGQ',
+              '.product_mall',
+              '[data-testid="basicList_mall"]',
+              '.mall',
+              '[class*="mall"]'
+            ];
+            
+            let seller = '';
+            for (const selector of sellerSelectors) {
+              const sellerEl = element.querySelector(selector);
+              if (sellerEl) {
+                seller = sellerEl.textContent?.trim() || '';
+                if (seller) break;
+              }
+            }
+
+            if (title && price > 0) {
+              results.push({
+                id: `naver-${Date.now()}-${index}`,
+                title: title.replace(/<[^>]*>/g, ''),
+                name: title.replace(/<[^>]*>/g, ''),
+                price: price,
+                imageUrl: imageUrl || '/images/placeholder.png',
+                url: link || '#',
+                link: link || '#',
+                platform: 'naver',
+                category: '',
+                salesCount: Math.floor(Math.random() * 1000) + 100,
+                rating: Math.floor(Math.random() * 50) / 10 + 4,
+                reviewCount: Math.floor(Math.random() * 500) + 50,
+                seller: seller || 'Unknown Seller',
+                description: `${title} - 네이버 쇼핑에서 판매중`,
+                brand: '',
+                availability: 'In Stock',
+                shippingInfo: '무료배송',
+                tags: [searchQuery],
+                originalPrice: '',
+                discount: 0,
+                stock: Math.floor(Math.random() * 100) + 10,
+                location: '대한민국',
+                competitionLevel: 'medium',
+              });
+            }
+          } catch (elementError) {
+            console.log(`Error processing element ${index}:`, elementError);
+          }
+        });
+
+        return results;
+      }, query, limit);
+
+      console.log(`Successfully scraped ${products.length} Naver products with Puppeteer`);
       return products;
       
     } catch (error) {
-      console.error('Error scraping Naver products:', error);
-      // Return empty array on error - fallback will be handled by ProductsService
+      console.error('Error scraping Naver products with Puppeteer:', error);
       return [];
+    } finally {
+      if (browser) {
+        await browser.close();
+      }
     }
   }
 }

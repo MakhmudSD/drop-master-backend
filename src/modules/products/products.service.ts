@@ -54,7 +54,7 @@ export class ProductsService {
 		};
 	}
 
-	public async getPopularProducts(platform: string = 'coupang', limit: number = 20, query?: string, timeFilter?: string) {
+	public async getPopularProducts(platform: string = 'coupang', limit: number = 20, query?: string, timeFilter?: string, userId?: string | null) {
 		try {
 			let products: any[] = [];
 			
@@ -159,24 +159,37 @@ export class ProductsService {
 		let products = [...platformProducts];
 		
 		if (timeFilter) {
-			products = products.map(product => {
+			// Create a deterministic but different seed for each timeFilter to ensure consistent randomization
+			const seed = this.getTimeFilterSeed(timeFilter);
+			
+			// Shuffle products based on time filter for dynamic appearance
+			products = this.shuffleArray([...products], seed);
+			
+			products = products.map((product, index) => {
 				let multiplier = 1;
+				let bonusMultiplier = 1;
+				
 				switch (timeFilter) {
 					case 'daily':
 						multiplier = 1.2; // Higher growth rates for daily
+						bonusMultiplier = index < 5 ? 1.3 : 1.0; // Boost top 5 for daily
 						break;
 					case 'weekly':
 						multiplier = 1.0; // Normal rates for weekly
+						bonusMultiplier = index < 8 ? 1.1 : 0.9; // Moderate boost for weekly
 						break;
 					case 'monthly':
 						multiplier = 0.8; // Lower rates for monthly
+						bonusMultiplier = index < 3 ? 1.2 : 0.8; // Conservative boost for monthly
 						break;
 				}
 				
 				return {
 					...product,
-					growthRate: Math.round((product.growthRate || 0) * multiplier * 10) / 10,
-					salesCount: Math.round((product.salesCount || 0) * multiplier),
+					growthRate: Math.round((product.growthRate || 0) * multiplier * bonusMultiplier * 10) / 10,
+					salesCount: Math.round((product.salesCount || 0) * multiplier * bonusMultiplier),
+					// Add time-based ranking boost
+					timeRank: index + 1,
 				};
 			});
 			
@@ -187,8 +200,41 @@ export class ProductsService {
 		return products.slice(0, Math.min(limit, products.length));
 	}
 
-	async getProduct(id: string, userId: string) {
-		const product = await this.productModel.findOne({ _id: id, userId });
+	private getTimeFilterSeed(timeFilter: string): number {
+		// Create different seeds for each time filter to ensure different but consistent ordering
+		const seeds = {
+			daily: 12345,
+			weekly: 67890,
+			monthly: 54321,
+		};
+		return seeds[timeFilter as keyof typeof seeds] || 11111;
+	}
+
+	private shuffleArray<T>(array: T[], seed: number): T[] {
+		// Simple seeded shuffle algorithm for consistent but different ordering
+		const rng = this.createSeededRandom(seed);
+		const shuffled = [...array];
+		
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(rng() * (i + 1));
+			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+		}
+		
+		return shuffled;
+	}
+
+	private createSeededRandom(seed: number) {
+		return function() {
+			seed = (seed * 9301 + 49297) % 233280;
+			return seed / 233280;
+		};
+	}
+
+	async getProduct(id: string, userId: string | null) {
+		// Build query conditionally - if no userId, search without user constraint
+		const query = userId ? { _id: id, userId } : { _id: id };
+		const product = await this.productModel.findOne(query);
+		
 		if (!product) {
 			throw new NotFoundException('Product not found');
 		}

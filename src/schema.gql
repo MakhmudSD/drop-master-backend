@@ -119,8 +119,8 @@ type Query {
   fetchProducts(platform: String!, queries: [String!]!): [SimpleProduct!]!
   getUser(userId: String!): UserGraphQLType!
   getUserByEmail(email: String!): UserGraphQLType!
-  popularProducts(limit: Float, platform: String!, query: String, timeFilter: String): [ProductType!]!
-  product(id: String!): ProductType!
+  popularProducts(limit: Float, platform: String!, query: String, timeFilter: String, userId: String): [ProductType!]!
+  product(id: String!, userId: String): ProductType!
   userProfile: UserType!
 }
 

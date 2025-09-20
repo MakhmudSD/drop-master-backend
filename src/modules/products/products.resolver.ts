@@ -13,8 +13,9 @@ export class ProductsResolver {
     @Args('limit', { nullable: true }) limit?: number,
     @Args('query', { nullable: true }) query?: string,
     @Args('timeFilter', { nullable: true }) timeFilter?: string,
+    @Args('userId', { nullable: true }) userId?: string,
   ): Promise<ProductType[]> {
-    const result = await this.productsService.getPopularProducts(platform, limit, query, timeFilter);
+    const result = await this.productsService.getPopularProducts(platform, limit, query, timeFilter, userId);
     // Transform the products to match our GraphQL type
     return (result.products || []).map((product: any) => ({
       id: product.id || product._id || `${platform}-${Date.now()}`,
@@ -47,17 +48,73 @@ export class ProductsResolver {
   }
 
   @Query(() => ProductType, { name: 'product' })
-  public getProduct(@Args('id') id: string): Promise<ProductType> {
-    // For now, return a mock product since findById doesn't exist
-    return Promise.resolve({
-      id: id,
-      title: 'Sample Product',
-      name: 'Sample Product',
-      price: 10000.0,
-      imageUrl: '/images/placeholder.png',
-      link: '#',
-      platform: 'coupang',
-      description: 'Sample product description',
-    });
+  public async getProduct(
+    @Args('id') id: string,
+    @Args('userId', { nullable: true }) userId?: string,
+  ): Promise<ProductType> {
+    try {
+      const result = await this.productsService.getProduct(id, userId || null);
+      const product = result.product;
+      
+      // Transform the product to match our GraphQL type
+      return {
+        id: product._id || product.id || id,
+        title: product.title || 'Product Title',
+        name: product.title || 'Product Name', // Use title as name since name doesn't exist in schema
+        price: parseFloat(String(product.priceKRW || product.price)) || 0.0,
+        imageUrl: product.imageUrls?.[0] || product.image || '/images/placeholder.png',
+        link: product.sourceUrl || product.url || '#',
+        platform: product.targetPlatform || product.source || 'coupang',
+        description: product.descriptionKorean || product.description || '',
+        brand: '', // brand doesn't exist in schema
+        category: product.category || '',
+        availability: product.stock || 'In Stock',
+        rating: 0.0,
+        reviewCount: 0,
+        shippingInfo: '',
+        tags: [],
+        specifications: '',
+        originalPrice: '',
+        discount: 0.0,
+        stock: 0,
+        seller: '',
+        location: '',
+        competitionLevel: product.competitionLevel || 'medium',
+        alibabaPrice: 0.0,
+        salesCount: product.salesCount || 0,
+        growthRate: product.growthRate || 0.0,
+        estimatedMargin: parseFloat(String(product.marginRate)) || 0.0,
+      };
+    } catch (error) {
+      // Return a fallback product if not found
+      return {
+        id: id,
+        title: 'Product Not Found',
+        name: 'Product Not Found',
+        price: 0.0,
+        imageUrl: '/images/placeholder.png',
+        link: '#',
+        platform: 'coupang',
+        description: 'This product could not be found.',
+        brand: '',
+        category: '',
+        availability: 'Out of Stock',
+        rating: 0.0,
+        reviewCount: 0,
+        shippingInfo: '',
+        tags: [],
+        specifications: '',
+        originalPrice: '',
+        discount: 0.0,
+        stock: 0,
+        seller: '',
+        location: '',
+        competitionLevel: 'medium',
+        alibabaPrice: 0.0,
+        salesCount: 0,
+        growthRate: 0.0,
+        estimatedMargin: 0.0,
+      };
+    }
   }
 }

@@ -13,6 +13,13 @@ export class MultiPlatformProductsService {
 
   constructor(private readonly httpService: HttpService) {}
 
+  private getNaverApiKeys() {
+    return {
+      clientId: process.env.NAVER_CLIENT_ID || '',
+      clientSecret: process.env.NAVER_CLIENT_SECRET || '',
+    };
+  }
+
   async fetchProducts(platform: string, queries: string[]): Promise<Product[]> {
     this.logger.log(`Fetching products for platform: ${platform}, queries: ${queries.join(', ')}`);
 
@@ -46,6 +53,13 @@ export class MultiPlatformProductsService {
     try {
       this.logger.log(`Fetching Naver products for query: ${query}`);
 
+      const { clientId, clientSecret } = this.getNaverApiKeys();
+      
+      if (!clientId || !clientSecret) {
+        this.logger.warn('Naver API keys not configured, using fallback products');
+        return this.getFallbackProducts('naver');
+      }
+
       const url = 'https://openapi.naver.com/v1/search/blog';
       const params = {
         query: query,
@@ -58,8 +72,8 @@ export class MultiPlatformProductsService {
         this.httpService.get(url, {
           params,
           headers: {
-            'X-Naver-Client-Id': 'x8bMpZrsfXiYKOsSlIqS',
-            'X-Naver-Client-Secret': 'eGc_MxkJjD',
+            'X-Naver-Client-Id': clientId,
+            'X-Naver-Client-Secret': clientSecret,
             'Content-Type': 'text/plain',
           },
         }),

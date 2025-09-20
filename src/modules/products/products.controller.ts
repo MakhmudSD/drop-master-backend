@@ -47,11 +47,23 @@ export class ProductsController {
 		});
 	}
 
-
+	@Get('popular')
+	@Public()
+	async getPopularProducts(
+		@Query('platform') platform: string = 'coupang',
+		@Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+		@Query('query') query?: string,
+		@Query('timeFilter') timeFilter?: string,
+		@Request() req?
+	) {
+		const userId = req?.user?.userId || null;
+		return this.productsService.getPopularProducts(platform, limit, query, timeFilter, userId);
+	}
 
 	@Get(':id')
 	async getProduct(@Param('id') id: string, @Request() req) {
-		return this.productsService.getProduct(id, req.user.userId);
+		const userId = req?.user?.userId || null;
+		return this.productsService.getProduct(id, userId);
 	}
 
 	@Post()
@@ -96,12 +108,11 @@ export class ProductsController {
 				};
 			}
 
-			// Create product using the existing service
 			const createProductDto = {
 				title: scrapedData.title,
 				description: `Scraped from ${scrapedData.platform}`,
 				priceKRW: scrapedData.price,
-				sourcePrice: scrapedData.price * 0.7, // Assume 30% margin
+				sourcePrice: scrapedData.price * 0.7,
 				marginRate: 30,
 				category: scrapedData.category || 'General',
 				targetPlatform: 'coupang',
@@ -131,7 +142,6 @@ export class ProductsController {
 	@HttpCode(HttpStatus.OK)
 	updateAllProducts(@Request() req) {
 		try {
-			// Note: updateAllProducts method not available in new scraping service
 			console.log('Bulk update not implemented in new scraping service');
 			return {
 				success: true,

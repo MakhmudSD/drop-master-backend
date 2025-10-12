@@ -63,7 +63,6 @@ import { UsersModule } from './modules/users/user.module';
     ScrapingModule,
     ApolloModule,
     GraphQLAppModule,
-    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

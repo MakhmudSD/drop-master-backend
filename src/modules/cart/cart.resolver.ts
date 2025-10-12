@@ -12,8 +12,9 @@ export class CartResolver {
 
   @Query(() => [CartItemType], { name: 'cartItems' })
   async getCartItems(@Context() context: any): Promise<CartItemType[]> {
-    const user = context.user || context.req.user;
+    const user = context.user || context.req?.user;
     if (!user || !user.userId) {
+      console.error('[CartResolver] User not authenticated');
       throw new Error('User not authenticated');
     }
 
@@ -60,7 +61,6 @@ export class CartResolver {
         throw new Error('User not authenticated');
       }
 
-      console.log('AddCartItem - User ID:', user.userId, 'Input:', input);
 
       // Ensure input validation
       if (!input.productId || typeof input.productId !== 'string') {
@@ -71,13 +71,24 @@ export class CartResolver {
         throw new Error('Valid quantity (minimum 1) is required');
       }
 
+      // Parse specifications to extract product data
+      let productData: any = {};
+      if (input.specifications) {
+        try {
+          productData = JSON.parse(input.specifications);
+          console.log('Parsed product data from specifications:', productData);
+        } catch (e) {
+          console.warn('Failed to parse specifications:', e);
+        }
+      }
+
       const result = await this.cartService.addToCart(user.userId, {
         productId: input.productId,
         quantity: input.quantity,
-        productName: 'Sample Product', // Default for testing
-        price: 29.99, // Default for testing
-        image: '/default-product.jpg', // Default
-        platform: 'web', // Default
+        productName: productData.title || productData.name || 'Product',
+        price: productData.price || 0,
+        image: productData.imageUrl || '/default-product.jpg',
+        platform: productData.platform || 'unknown',
         specifications: input.specifications || '',
       });
 

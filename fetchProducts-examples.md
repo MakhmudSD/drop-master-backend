@@ -68,8 +68,8 @@ type SimpleProduct {
 
 ### Naver Blog API
 - **Endpoint**: `https://openapi.naver.com/v1/search/blog`
-- **Client ID**: `x8bMpZrsfXiYKOsSlIqS`
-- **Client Secret**: `eGc_MxkJjD`
+- **Client ID**: `YOUR_NAVER_CLIENT_ID`
+- **Client Secret**: `YOUR_NAVER_CLIENT_SECRET`
 - **Headers**: 
   - `X-Naver-Client-Id`: Client ID
   - `X-Naver-Client-Secret`: Client Secret

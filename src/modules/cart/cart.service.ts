@@ -9,33 +9,42 @@ export class CartService {
 	constructor(@InjectModel(CartItem.name) private cartItemModel: Model<CartItemDocument>) {}
 
 	async getCartItems(userId: string) {
-		const items = await this.cartItemModel.find({ userId }).populate('productId');
+		try {
+			const items = await this.cartItemModel.find({ userId }).exec();
+			
+		const mappedItems = items.map((item) => ({
+			id: (item._id as any).toString(),
+			productId: item.productId || 'unknown',
+			productName: item.productName || 'Unknown Product',
+			quantity: item.quantity,
+			price: item.price || 0,
+			image: item.image || '',
+			platform: item.platform || '',
+			specifications: item.specifications || '',
+			createdAt: item.addedAt || new Date(),
+			updatedAt: new Date(),
+		}));
 
-		return {
-			success: true,
-			data: {
-				items: items.map((item) => ({
-					id: (item._id as any).toString(),
-					productId: item.productId.toString(),
-					productName: item.productName || 'Unknown Product',
-					quantity: item.quantity,
-					price: item.price || 0,
-					image: item.image || '',
-					platform: item.platform || '',
-					specifications: item.specifications || '',
-					createdAt: item.addedAt || new Date(),
-					updatedAt: new Date(),
-				})),
-			},
-		};
+			return {
+				success: true,
+				data: {
+					items: mappedItems,
+				},
+			};
+		} catch (error) {
+			console.error('[CartService] ❌ Error fetching cart items:', error);
+			return {
+				success: false,
+				data: {
+					items: [],
+				},
+			};
+		}
 	}
 
 	async addToCart(userId: string, addToCartDto: any) {
 		const { productId, quantity, productName, price, image, platform, specifications } = addToCartDto;
 
-		console.log('Adding to cart - userId:', userId, 'productId:', productId, 'quantity:', quantity);
-		console.log('Cart service input validation - productName:', productName, 'price:', price);
-		
 		// Check if item already exists in cart
 		let cartItem = await this.cartItemModel.findOne({ userId, productId });
 
@@ -44,27 +53,27 @@ export class CartService {
 			cartItem.quantity += quantity;
 			await cartItem.save();
 		} else {
-			// Create new cart item with proper validation
+			// Create new cart item
 			const cartItemData = {
 				userId,
 				productId,
-				productName: productName || 'Sample Product',
+				productName: productName || 'Product',
 				quantity: Number(quantity),
-				price: Number(price) || 29.99,
+				price: Number(price) || 0,
 				image: image || '/default-product.jpg',
-				platform: platform || 'web',
+				platform: platform || 'unknown',
 				specifications: specifications || '',
 				addedAt: new Date(),
 			};
 			
-			console.log('Creating cart item with data:', cartItemData);
+			console.log('[CartService] Creating new cart item:', cartItemData);
 			
 			try {
 				cartItem = new this.cartItemModel(cartItemData);
 				await cartItem.save();
-				console.log('Cart item saved successfully:', cartItem._id);
+				console.log('[CartService] ✅ Cart item saved successfully! ID:', cartItem._id);
 			} catch (saveError) {
-				console.error('MongoDB save error:', saveError);
+				console.error('[CartService] ❌ MongoDB save error:', saveError);
 				throw new Error(`Failed to save cart item: ${saveError.message}`);
 			}
 		}
